@@ -14,7 +14,7 @@ app = Flask(__name__)
 
 logger = None
 
-base_url = "https://api.exchangeratesapi.io/"
+base_url = "http://api.exchangeratesapi.io/"
 
 def datetime_format(dt):
     return '%04d' % dt.year + dt.strftime("-%m-%dT%H:%M:%SZ")
@@ -39,6 +39,7 @@ def get_entities():
     since = get_var('since') or "1999-01-04"
     base = get_var('base') or "EUR"
     symbols = get_var('symbols') or ""
+    accesskey = get_var('accesskey') or ""
 
 
     entities = []
@@ -49,9 +50,10 @@ def get_entities():
     start = iso8601.parse_date(since).date()
 
     while start <= datetime.now(pytz.UTC).date():
-        response = requests.get("%s%s?base=%s&symbols=%s" % (base_url, start,base,symbols))
+        logger.debug("GET: %s%s?access_key=XXX&base=%s&symbols=%s" % (base_url, start, base, symbols))
+        response = requests.get("%s%s?access_key=%s&base=%s&symbols=%s" % (base_url, start, accesskey, base, symbols))
         result = response.json()
-
+        logger.info("Result = %s" % (result))
         result.update({"_id": "%s-%s" % (base, start)})
         result.update({"_updated": "%s" % start})
         result.update({"date": "%s" % to_transit_datetime(iso8601.parse_date(result["date"]))})
@@ -66,7 +68,7 @@ def get_entities():
 if __name__ == '__main__':
     # Set up logging
     format_string = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-    logger = logging.getLogger('azure-billing-microservice')
+    logger = logging.getLogger('openrates-microservice')
 
     # Log to stdout
     stdout_handler = logging.StreamHandler()
