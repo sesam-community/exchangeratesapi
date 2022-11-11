@@ -37,7 +37,7 @@ def get_var(var, default = None):
 @app.route('/', methods=['GET'])
 def get_entities():
     since = get_var('since') or "1999-01-04"
-    base = get_var('base') or "EUR"
+    bases = get_var('base') or "EUR" # or "EUR USD" if you want multiple bases
     symbols = get_var('symbols') or ""
     accesskey = get_var('accesskey') or ""
 
@@ -50,14 +50,15 @@ def get_entities():
     start = iso8601.parse_date(since).date()
 
     while start <= datetime.now(pytz.UTC).date():
-        logger.debug("GET: %s%s?access_key=XXX&base=%s&symbols=%s" % (base_url, start, base, symbols))
-        response = requests.get("%s%s?access_key=%s&base=%s&symbols=%s" % (base_url, start, accesskey, base, symbols))
-        result = response.json()
-        logger.info("Result = %s" % (result))
-        result.update({"_id": "%s-%s" % (base, start)})
-        result.update({"_updated": "%s" % start})
-        result.update({"date": "%s" % to_transit_datetime(iso8601.parse_date(result["date"]))})
-        entities.append(result)
+        for base in bases.split():
+          logger.debug("GET: %s%s?access_key=XXX&base=%s&symbols=%s" % (base_url, start, base, symbols))
+          response = requests.get("%s%s?access_key=%s&base=%s&symbols=%s" % (base_url, start, accesskey, base, symbols))
+          result = response.json()
+          logger.info("Result = %s" % (result))
+          result.update({"_id": "%s-%s" % (base, start)})
+          result.update({"_updated": "%s" % start})
+          result.update({"date": "%s" % to_transit_datetime(iso8601.parse_date(result["date"]))})
+          entities.append(result)
 
         start = (start + relativedelta(days=1))
 
