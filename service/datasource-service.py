@@ -16,6 +16,7 @@ logger = None
 
 base_url = "http://api.exchangeratesapi.io/"
 
+
 def datetime_format(dt):
     return '%04d' % dt.year + dt.strftime("-%m-%dT%H:%M:%SZ")
 
@@ -37,33 +38,40 @@ def get_var(var, default = None):
 @app.route('/', methods=['GET'])
 def get_entities():
     since = get_var('since') or "1999-01-04"
-    bases = get_var('base') or "EUR" # or "EUR USD" if you want multiple bases
+    base = get_var('base') or "EUR"  # or "EUR USD" if you want multiple bases
     symbols = get_var('symbols') or ""
-    accesskey = get_var('accesskey') or ""
-
+    access_key = get_var('accesskey') or ""
 
     entities = []
 
-    end = datetime.now(pytz.UTC).date()  # we need to use UTC as salesforce API requires this
-
-
     start = iso8601.parse_date(since).date()
+    bases = base.split()
+    base_currency = bases[0]
 
     while start <= datetime.now(pytz.UTC).date():
-        for base in bases.split():
-          logger.debug("GET: %s%s?access_key=XXX&base=%s&symbols=%s" % (base_url, start, base, symbols))
-          response = requests.get("%s%s?access_key=%s&base=%s&symbols=%s" % (base_url, start, accesskey, base, symbols))
-          result = response.json()
-          logger.info("Result = %s" % (result))
-          result.update({"_id": "%s-%s" % (base, start)})
-          result.update({"_updated": "%s" % start})
-          result.update({"date": "%s" % to_transit_datetime(iso8601.parse_date(result["date"]))})
-          entities.append(result)
+        logger.debug("GET: %s%s?access_key=XXX&base=%s&symbols=%s" % (base_url, start, base_currency, symbols))
+        response = requests.get("%s%s?access_key=%s&base=%s&symbols=%s" % (base_url, start, access_key, base_currency, symbols))
+        result = response.json()
+        logger.info("Result = %s" % (result))
+        result["_id"] = "%s-%s" % (base_currency, start)
+        result["_updated"] = "%s" % start
+        result["date"] = "%s" % to_transit_datetime(iso8601.parse_date(result["date"]))
+        entities.append(result)
+
+        base_rates = result["rates"]
+
+        for other_currency in bases[0:]:
+            other_entity = {
+                "_id": "%s-%s" % (other_currency, start),
+                "_updated": result["_updated"],
+                "date": result["date"],
+                "rates": {k: 1.0 / base_rates[k] for (k, v) in base_rates.items()}
+            }
+            entities.append(other_entity)
 
         start = (start + relativedelta(days=1))
 
     return Response(json.dumps(entities), mimetype='application/json')
-
 
 
 if __name__ == '__main__':
