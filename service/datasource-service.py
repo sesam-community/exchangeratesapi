@@ -61,13 +61,13 @@ def get_entities():
 
         base_rates = result["rates"]
 
-        for other_currency in bases[0:]:
+        for other_currency in bases[1:]:
             other_entity = {
                 "_id": "%s-%s" % (other_currency, start),
                 "_updated": result["_updated"],
                 "base": other_currency,
                 "date": result["date"],
-                "rates": {k: 1.0 / base_rates[k] for (k, v) in base_rates.items()}
+                "rates": {k: base_rates[k] / base_rates[other_currency] for (k, v) in base_rates.items()}
             }
             entities.append(other_entity)
 
