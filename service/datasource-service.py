@@ -55,6 +55,7 @@ def get_entities():
         logger.info("Result = %s" % (result))
         result["_id"] = "%s-%s" % (base_currency, start)
         result["_updated"] = "%s" % start
+        result["base"] = base_currency
         result["date"] = "%s" % to_transit_datetime(iso8601.parse_date(result["date"]))
         entities.append(result)
 
@@ -64,6 +65,7 @@ def get_entities():
             other_entity = {
                 "_id": "%s-%s" % (other_currency, start),
                 "_updated": result["_updated"],
+                "base": other_currency,
                 "date": result["date"],
                 "rates": {k: 1.0 / base_rates[k] for (k, v) in base_rates.items()}
             }
