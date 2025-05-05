@@ -53,8 +53,7 @@ def get_entities():
     while start <= datetime.now(pytz.UTC).date():
         logger.debug("GET: %s%s?access_key=XXX&base=%s&symbols=%s" % (base_url, start, base_currency, symbols))
 
-        response = requests.get(
-            "%s%s?access_key=%s&base=%s&symbols=%s" % (base_url, start, access_key, base_currency, symbols))
+        response = requests.get("%s%s?access_key=%s&base=%s&symbols=%s" % (base_url, start, access_key, base_currency, symbols))
         result = response.json()
         logger.info("Result = %s" % (result))
         result["_id"] = "%s-%s" % (base_currency, start)
