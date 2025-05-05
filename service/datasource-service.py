@@ -9,6 +9,7 @@ import pytz
 import iso8601
 import requests
 import logging
+import time
 
 app = Flask(__name__)
 
@@ -41,6 +42,7 @@ def get_entities():
     base = get_var('base') or "EUR"  # or "EUR USD" if you want multiple bases
     symbols = get_var('symbols') or ""
     access_key = get_var('accesskey') or ""
+    delay = int(get_var('DELAY') or 0)
 
     entities = []
 
@@ -50,7 +52,9 @@ def get_entities():
 
     while start <= datetime.now(pytz.UTC).date():
         logger.debug("GET: %s%s?access_key=XXX&base=%s&symbols=%s" % (base_url, start, base_currency, symbols))
-        response = requests.get("%s%s?access_key=%s&base=%s&symbols=%s" % (base_url, start, access_key, base_currency, symbols))
+
+        response = requests.get(
+            "%s%s?access_key=%s&base=%s&symbols=%s" % (base_url, start, access_key, base_currency, symbols))
         result = response.json()
         logger.info("Result = %s" % (result))
         result["_id"] = "%s-%s" % (base_currency, start)
@@ -73,6 +77,8 @@ def get_entities():
 
         start = (start + relativedelta(days=1))
 
+        time.sleep(delay)
+
     return Response(json.dumps(entities), mimetype='application/json')
 
 
@@ -86,7 +92,12 @@ if __name__ == '__main__':
     stdout_handler.setFormatter(logging.Formatter(format_string))
     logger.addHandler(stdout_handler)
 
-    logger.setLevel(logging.INFO)
+    log_level = get_var('LOGLEVEL')
+
+    if log_level is None:
+        logger.setLevel(logging.INFO)
+    else:
+        logger.setLevel(log_level)
 
     app.run(debug=False, host='0.0.0.0', port=5000)
 
